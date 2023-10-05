@@ -2,7 +2,13 @@
 
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
+import {
+	ChevronDown,
+	ChevronUp,
+	Loader2,
+	RotateCw,
+	Search,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -32,6 +38,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 	const [numPages, setNumPages] = useState<number>();
 	const [currPage, setCurrPage] = useState(1);
 	const [scale, setScale] = useState(1);
+	const [rotation, setRotation] = useState(0);
 
 	const CustomPageValidator = z.object({
 		page: z.string().refine(num => Number(num) > 0 && Number(num) <= numPages!),
@@ -125,6 +132,13 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
+
+					<Button
+						aria-label='rotate 90 degrees'
+						onClick={() => setRotation(prev => prev + 90)}
+						variant='ghost'>
+						<RotateCw className='h-4 w-4' />
+					</Button>
 				</div>
 			</div>
 
@@ -151,6 +165,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 								pageNumber={currPage}
 								width={width ? width : 1}
 								scale={scale}
+								rotate={rotation}
 							/>
 						</Document>
 					</div>
