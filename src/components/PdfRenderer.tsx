@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
@@ -92,6 +93,16 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 						}>
 						<ChevronUp className='h-4 w-4' />
 					</Button>
+				</div>
+
+				<div className='space-x-2'>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button aria-label='zoom' variant='ghost'>
+								<Search className='h-4 w-4' />
+							</Button>
+						</DropdownMenuTrigger>
+					</DropdownMenu>
 				</div>
 			</div>
 
