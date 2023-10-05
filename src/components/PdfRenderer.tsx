@@ -27,6 +27,7 @@ import SimpleBar from 'simplebar-react';
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import PdfFullscreen from './PdfFullscreen';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
@@ -39,6 +40,9 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 	const [currPage, setCurrPage] = useState(1);
 	const [scale, setScale] = useState(1);
 	const [rotation, setRotation] = useState(0);
+	const [renderedScale, setRenderedScale] = useState<number | null>(null);
+
+	const isLoading = renderedScale !== scale;
 
 	const CustomPageValidator = z.object({
 		page: z.string().refine(num => Number(num) > 0 && Number(num) <= numPages!),
@@ -74,6 +78,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 						variant='ghost'
 						onClick={() => {
 							setCurrPage(prev => (prev - 1 > 1 ? prev - 1 : 1));
+							setValue('page', String(currPage - 1));
 						}}
 						disabled={currPage <= 1}>
 						<ChevronDown className='h-4 w-4' />
@@ -102,9 +107,12 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 						disabled={numPages === undefined || currPage >= numPages}
 						aria-label='next page'
 						variant='ghost'
-						onClick={() =>
-							setCurrPage(prev => (prev + 1 > numPages! ? numPages! : prev + 1))
-						}>
+						onClick={() => {
+							setCurrPage(prev =>
+								prev + 1 > numPages! ? numPages! : prev + 1,
+							);
+							setValue('page', String(currPage + 1));
+						}}>
 						<ChevronUp className='h-4 w-4' />
 					</Button>
 				</div>
@@ -139,6 +147,8 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 						variant='ghost'>
 						<RotateCw className='h-4 w-4' />
 					</Button>
+
+					<PdfFullscreen fileUrl={url} />
 				</div>
 			</div>
 
@@ -161,11 +171,28 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
 							onLoadSuccess={({ numPages }) => setNumPages(numPages)}
 							file={url}
 							className='max-w-full'>
+							{isLoading && renderedScale ? (
+								<Page
+									pageNumber={currPage}
+									width={width ? width : 1}
+									scale={scale}
+									rotate={rotation}
+									key={'@' + renderedScale}
+								/>
+							) : null}
 							<Page
+								className={cn(isLoading ? 'hidden' : '')}
 								pageNumber={currPage}
 								width={width ? width : 1}
 								scale={scale}
 								rotate={rotation}
+								key={'@' + scale}
+								loading={
+									<div className='flex justify-center'>
+										<Loader2 className='my-24 h-6 w-6 animate-spin' />
+									</div>
+								}
+								onRenderSuccess={() => setRenderedScale(scale)}
 							/>
 						</Document>
 					</div>
