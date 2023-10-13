@@ -1,7 +1,10 @@
 import { db } from '@/db';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { TRPCError } from '@trpc/server';
 import { createUploadthing, type FileRouter } from 'uploadthing/next';
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { Pinecone } from '@pinecone-database/pinecone';
 
 const f = createUploadthing();
 
@@ -11,7 +14,7 @@ export const ourFileRouter = {
 			const { getUser } = getKindeServerSession();
 			const user = getUser();
 
-			if (!user || !user.id) throw new TRPCError({ code: 'UNAUTHORIZED' });
+			if (!user || !user.id) throw new Error('Unauthorized');
 
 			return { userId: user.id };
 		})
@@ -25,6 +28,61 @@ export const ourFileRouter = {
 					uploadStatus: 'PROCESSING',
 				},
 			});
+
+			try {
+				const response = await fetch(
+					`https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`,
+				);
+				const blob = await response.blob();
+
+				const loader = new PDFLoader(blob);
+
+				const pageLevelDocs = await loader.load();
+
+				const pagesAmt = pageLevelDocs.length;
+
+				// vectorized and index entire document
+				console.log('creating pinecone');
+
+				const pinecone = new Pinecone({
+					environment: 'gcp-starter',
+					apiKey: process.env.PINECONE_API_KEY!,
+				});
+				const index = pinecone.index('pdfinator');
+				const indexes = await pinecone.listIndexes();
+				console.log(indexes);
+
+				const embeddings = new OpenAIEmbeddings({
+					openAIApiKey: process.env.OPENAI_API_KEY,
+				});
+				console.log('pineconestore');
+
+				await PineconeStore.fromDocuments(pageLevelDocs, embeddings, {
+					pineconeIndex: index,
+					namespace: createdFile.id,
+				});
+				console.log('updating file to success');
+
+				await db.file.update({
+					data: {
+						uploadStatus: 'SUCCESS',
+					},
+					where: {
+						id: createdFile.id,
+					},
+				});
+			} catch (error) {
+				console.log('error here');
+
+				await db.file.update({
+					data: {
+						uploadStatus: 'FAILED',
+					},
+					where: {
+						id: createdFile.id,
+					},
+				});
+			}
 		}),
 } satisfies FileRouter;
 
