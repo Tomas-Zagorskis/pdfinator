@@ -1,4 +1,4 @@
-import { Pinecone, PineconeClient } from '@pinecone-database/pinecone';
+import { PineconeClient } from '@pinecone-database/pinecone';
 
 export const getPineconeClient = async () => {
 	const client = new PineconeClient();

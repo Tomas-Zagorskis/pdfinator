@@ -5,10 +5,12 @@ import { db } from '@/db';
 import { z } from 'zod';
 
 export const appRouter = router({
-	authCallBack: publicProcedure.query(async () => {
+	authCallback: publicProcedure.query(async () => {
 		const { getUser } = getKindeServerSession();
 		const user = getUser();
-		if (!user.email || !user.id) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+		if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+		if (!user.id || !user.email) throw new TRPCError({ code: 'BAD_REQUEST' });
 
 		// check if the user is in the database
 		const dbUser = await db.user.findFirst({ where: { id: user.id } });
