@@ -4,7 +4,7 @@ import { createUploadthing, type FileRouter } from 'uploadthing/next';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { Pinecone } from '@pinecone-database/pinecone';
+import { pinecone } from '@/lib/pinecone';
 
 const f = createUploadthing();
 
@@ -42,26 +42,17 @@ export const ourFileRouter = {
 				const pagesAmt = pageLevelDocs.length;
 
 				// vectorized and index entire document
-				console.log('creating pinecone');
 
-				const pinecone = new Pinecone({
-					environment: 'gcp-starter',
-					apiKey: process.env.PINECONE_API_KEY!,
-				});
 				const index = pinecone.index('pdfinator');
-				const indexes = await pinecone.listIndexes();
-				console.log(indexes);
 
 				const embeddings = new OpenAIEmbeddings({
 					openAIApiKey: process.env.OPENAI_API_KEY,
 				});
-				console.log('pineconestore');
 
-				await PineconeStore.fromDocuments(pageLevelDocs, embeddings, {
+				await PineconeStore.fromExistingIndex(embeddings, {
 					pineconeIndex: index,
 					namespace: createdFile.id,
 				});
-				console.log('updating file to success');
 
 				await db.file.update({
 					data: {
